@@ -11,7 +11,7 @@ x402 settles a payment, but the payer is usually left with an HTTP 200 and the g
 Requires Node 20+.
 
 ```bash
-git clone <this repo> && cd x402-receipts
+git clone https://github.com/predgeAI/x402-receipts && cd x402-receipts
 npm install                 # ~85 packages, dev-only (express, tsx, typescript)
 npm test                    # 21 tests, includes all vectors and the express example
 npm run vectors             # human-readable vector report
@@ -54,6 +54,15 @@ Layout: `src/` library, `vectors/` conformance vectors (`npm run vectors:gen` re
 - M2: Daml template on Canton that records and validates receipts on-ledger, with ledger update ids as `settlement.reference`.
 - M3: SDK polish and integration guide (packaging, more languages for verification, key-rotation and revocation guidance).
 - M4: p402 adapter.
+
+## Support development
+
+This repo is open source (MIT) and maintained by a solo developer as part of Predge. If it is useful to you, you can support its development with a crypto donation. Donations cover RPC and hosting costs, test vectors and ongoing maintenance of the open-source tools. A donation does not buy a service, a token or any special treatment.
+
+- EVM (Base preferred; the same address works on Arbitrum and Arc): `0x9084f5000E07C7133D6dA5eE4f271AB6D1821144`
+- Solana: `9dxMRRtC7RKZH5rFZpUywjmnQ87H9qHhtW43u5LYmpV`
+
+These are the same addresses Predge already uses to receive x402 payments. Send USDC or the network's native token only. You can also fund the repo through [Drips](https://www.drips.network/app/projects/github/predgeAI/x402-receipts). All options are listed on the [support page](https://predgeai.github.io/erc8004-outcome-validator/support/).
 
 ## License
 
