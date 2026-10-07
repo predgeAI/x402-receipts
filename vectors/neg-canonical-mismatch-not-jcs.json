@@ -1,0 +1,36 @@
+{
+  "description": "canonical is valid JSON of the same payload but not JCS (pretty-printed)",
+  "expect": {
+    "ok": false,
+    "reason": "canonical_mismatch"
+  },
+  "envelope": {
+    "payload": {
+      "version": "1",
+      "receiptId": "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f10",
+      "payer": "eip155:84532:0x857b06519E91e3A54538791bDbb0E22373e36b66",
+      "payee": "eip155:84532:0x209693Bc6afc0C5328bA36FaF03C514EF312287C",
+      "asset": "eip155:84532/erc20:0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "amount": "10000",
+      "settlement": {
+        "network": "eip155:84532",
+        "reference": "0x1f4e9c0d5a7b8c2e3d4f5a6b7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f801",
+        "settledAt": "2026-03-01T12:00:03Z"
+      },
+      "x402": {
+        "resource": "https://api.example.com/v1/weather",
+        "paymentRequirementsHash": "sha256:0b6eae02fd49aed1b533fd167e888debbe8210d5c1ea3d17b2fd88fc28168fb2"
+      },
+      "issuer": {
+        "id": "https://api.example.com",
+        "kid": "test-key-2026-01"
+      },
+      "issuedAt": "2026-03-01T12:00:05Z"
+    },
+    "canonical": "{\n  \"version\": \"1\",\n  \"receiptId\": \"0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f10\",\n  \"payer\": \"eip155:84532:0x857b06519E91e3A54538791bDbb0E22373e36b66\",\n  \"payee\": \"eip155:84532:0x209693Bc6afc0C5328bA36FaF03C514EF312287C\",\n  \"asset\": \"eip155:84532/erc20:0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\n  \"amount\": \"10000\",\n  \"settlement\": {\n    \"network\": \"eip155:84532\",\n    \"reference\": \"0x1f4e9c0d5a7b8c2e3d4f5a6b7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f801\",\n    \"settledAt\": \"2026-03-01T12:00:03Z\"\n  },\n  \"x402\": {\n    \"resource\": \"https://api.example.com/v1/weather\",\n    \"paymentRequirementsHash\": \"sha256:0b6eae02fd49aed1b533fd167e888debbe8210d5c1ea3d17b2fd88fc28168fb2\"\n  },\n  \"issuer\": {\n    \"id\": \"https://api.example.com\",\n    \"kid\": \"test-key-2026-01\"\n  },\n  \"issuedAt\": \"2026-03-01T12:00:05Z\"\n}",
+    "signature": "3ILEHPC7jOz-crri9zC8zA9zgqeOKheconHVdFpNF9mlQ3H861XClauAqeK512YWp8xWCz8mCMkHKOocSJ7RBg",
+    "kid": "test-key-2026-01",
+    "alg": "ed25519",
+    "envelopeHash": "sha256:67093f0b3b1a973cf49375647e9a1853ed47bae58c3a6fb0de75702cfa04533a"
+  }
+}

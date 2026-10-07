@@ -1,0 +1,16 @@
+{
+  "keys": [
+    {
+      "kid": "test-key-2026-01",
+      "publicKey": "Jap31t_kl0RZ4-c7jCQ5HwhRoBQtSq2dh-FeLsU-KSg",
+      "validFrom": "2026-01-01T00:00:00Z",
+      "validTo": null
+    },
+    {
+      "kid": "test-key-2025-expired",
+      "publicKey": "aqUSyWmGr8wotUCl7wNK_7r8ROi70B1UPTiz39GeGPY",
+      "validFrom": "2025-01-01T00:00:00Z",
+      "validTo": "2025-12-31T23:59:59Z"
+    }
+  ]
+}

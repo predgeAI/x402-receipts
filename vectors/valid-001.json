@@ -1,0 +1,36 @@
+{
+  "description": "Valid receipt, Base Sepolia USDC settlement",
+  "expect": {
+    "ok": true,
+    "reason": "ok"
+  },
+  "envelope": {
+    "payload": {
+      "version": "1",
+      "receiptId": "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f10",
+      "payer": "eip155:84532:0x857b06519E91e3A54538791bDbb0E22373e36b66",
+      "payee": "eip155:84532:0x209693Bc6afc0C5328bA36FaF03C514EF312287C",
+      "asset": "eip155:84532/erc20:0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "amount": "10000",
+      "settlement": {
+        "network": "eip155:84532",
+        "reference": "0x1f4e9c0d5a7b8c2e3d4f5a6b7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f801",
+        "settledAt": "2026-03-01T12:00:03Z"
+      },
+      "x402": {
+        "resource": "https://api.example.com/v1/weather",
+        "paymentRequirementsHash": "sha256:0b6eae02fd49aed1b533fd167e888debbe8210d5c1ea3d17b2fd88fc28168fb2"
+      },
+      "issuer": {
+        "id": "https://api.example.com",
+        "kid": "test-key-2026-01"
+      },
+      "issuedAt": "2026-03-01T12:00:05Z"
+    },
+    "canonical": "{\"amount\":\"10000\",\"asset\":\"eip155:84532/erc20:0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"issuedAt\":\"2026-03-01T12:00:05Z\",\"issuer\":{\"id\":\"https://api.example.com\",\"kid\":\"test-key-2026-01\"},\"payee\":\"eip155:84532:0x209693Bc6afc0C5328bA36FaF03C514EF312287C\",\"payer\":\"eip155:84532:0x857b06519E91e3A54538791bDbb0E22373e36b66\",\"receiptId\":\"0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f10\",\"settlement\":{\"network\":\"eip155:84532\",\"reference\":\"0x1f4e9c0d5a7b8c2e3d4f5a6b7c8d9e0f1a2b3c4d5e6f708192a3b4c5d6e7f801\",\"settledAt\":\"2026-03-01T12:00:03Z\"},\"version\":\"1\",\"x402\":{\"paymentRequirementsHash\":\"sha256:0b6eae02fd49aed1b533fd167e888debbe8210d5c1ea3d17b2fd88fc28168fb2\",\"resource\":\"https://api.example.com/v1/weather\"}}",
+    "signature": "3ILEHPC7jOz-crri9zC8zA9zgqeOKheconHVdFpNF9mlQ3H861XClauAqeK512YWp8xWCz8mCMkHKOocSJ7RBg",
+    "kid": "test-key-2026-01",
+    "alg": "ed25519",
+    "envelopeHash": "sha256:2ac5c21c22ed2b56b51a8d356124be0ad505694381f0572e9579a09f465748e5"
+  }
+}
