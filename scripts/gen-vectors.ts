@@ -35,7 +35,8 @@ const base = (kid = TEST_KID, issuedAt = "2026-03-01T12:00:05Z"): ReceiptPayload
 const rehash = (e: Omit<ReceiptEnvelope, "envelopeHash">): ReceiptEnvelope =>
   ({ ...e, envelopeHash: computeEnvelopeHash(e as unknown as Record<string, unknown>) });
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
-const write = (name: string, doc: unknown) => writeFileSync(dir + name, JSON.stringify(doc, null, 2) + "\n");
+const write = (name: string, doc: unknown) =>
+  writeFileSync(dir + name, typeof doc === "string" ? doc : JSON.stringify(doc, null, 2) + "\n");
 
 write("keyset.json", testKeyset());
 write("README.md", "# Test vectors\n\nTEST-ONLY keys (seeds are public strings in test/support/test-keys.ts). Regenerate with `npm run vectors:gen`; run with `npm run vectors`.\n\nEach file: `{ description, expect: { ok, reason }, envelope }`. Verify against `keyset.json`.\n");
