@@ -1,10 +1,10 @@
 # x402-receipts
 
-Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. MIT licensed. Status: M1 prototype, not audited.
+Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. MIT licensed. Status: prototype, not audited. M1 done; M2a (Canton profile + ledger cross-check) done.
 
 ## Why receipts matter
 
-x402 settles a payment, but the payer is usually left with an HTTP 200 and the gateway's word that it happened. A signed receipt changes this: the recipient (or an auditor, accountant, or another agent) can verify who paid whom, how much, for what resource, and where it settled, using only the issuer's public key. No call to the gateway, no trust in the gateway's logs at audit time, and any edit to the stored file is detected. Receipts use CAIP identifiers so the same format covers EVM chains today and other ledgers (Canton planned) tomorrow.
+x402 settles a payment, but the payer is usually left with an HTTP 200 and the gateway's word that it happened. A signed receipt changes this: the recipient (or an auditor, accountant, or another agent) can verify who paid whom, how much, for what resource, and where it settled, using only the issuer's public key. No call to the gateway, no trust in the gateway's logs at audit time, and any edit to the stored file is detected. Receipts use CAIP identifiers so the same format covers EVM chains and Canton (see the [Canton profile](docs/canton-profile.md)).
 
 ## 30-minute quickstart
 
@@ -13,7 +13,7 @@ Requires Node 20+.
 ```bash
 git clone https://github.com/predgeAI/x402-receipts && cd x402-receipts
 npm install                 # ~85 packages, dev-only (express, tsx, typescript)
-npm test                    # 21 tests, includes all vectors and the express example
+npm test                    # 41 tests, includes all vectors, the Canton profile and the express example
 npm run vectors             # human-readable vector report
 ```
 
@@ -40,7 +40,24 @@ if (!r.ok) console.error(r.reason); // bad_signature | canonical_mismatch | enve
 
 Walk-through: read [SPEC.md](SPEC.md) (10 min), run the example and read `examples/x402-express/*.ts` (10 min), open `vectors/` and flip a byte in `valid-001.json` to watch the reason code change (10 min).
 
-Layout: `src/` library, `vectors/` conformance vectors (`npm run vectors:gen` regenerates), `examples/x402-express/` server and client, `test/` node:test suites.
+Canton (x402 `exact` scheme, facilitator `SettlementResponse` with an `updateId`):
+
+```ts
+import { buildCantonReceiptPayload, issueReceipt, verifyReceipt, checkAgainstLedger } from "x402-receipts";
+
+// issuer: turn the facilitator's settle response into a signed receipt
+const payload = buildCantonReceiptPayload({ requirements, settle, resource, receiptId, issuer, settledAt, issuedAt });
+const envelope = issueReceipt(payload, signingSeed, issuer.kid);
+
+// payee or payer: Level 1 offline, then Level 2 against your own participant's JSON Ledger API
+verifyReceipt(envelope, keyset);
+const r = await checkAgainstLedger(envelope, fetch, { ledgerUrl: "http://localhost:7575", readAs: myParty, token });
+// r.reason: ok | payee_mismatch | payer_mismatch | amount_mismatch | asset_mismatch | update_not_found | ...
+```
+
+Field mapping, the exact JSON API request, what each party can prove under Canton privacy, and the assumptions not yet tested on a live node: [docs/canton-profile.md](docs/canton-profile.md).
+
+Layout: `src/` library (`src/canton.ts` for Canton), `docs/` profiles, `vectors/` conformance vectors (`npm run vectors:gen` regenerates), `examples/x402-express/` server and client, `test/` node:test suites.
 
 ## Design notes
 
@@ -50,10 +67,11 @@ Layout: `src/` library, `vectors/` conformance vectors (`npm run vectors:gen` re
 
 ## Roadmap
 
-- M1 (this repo): spec, library, vectors, express example.
-- M2: Daml template on Canton that records and validates receipts on-ledger, with ledger update ids as `settlement.reference`.
+- M1 (done): spec, library, vectors, express example.
+- M2a (done, this commit): Canton profile. Receipt fields for the x402 exact-Canton scheme (`settlement.reference` = ledger `updateId`, party ids, CIP-56 instrument ids), a builder from the facilitator's settle response, and `checkAgainstLedger`, which cross-checks payer, payee, amount and asset against the verifier's own participant via the JSON Ledger API v2. Tested against mocked ledger responses only; not yet run against a live participant.
+- M2b (next): Daml template on Canton that records receipts on-ledger (signatory issuer, observers payer and payee) in a follow-up transaction referencing the `updateId`, plus a LocalNet/DevNet run with published update ids.
 - M3: SDK polish and integration guide (packaging, more languages for verification, key-rotation and revocation guidance).
-- M4: p402 adapter.
+- M4 (planned): p402 adapter.
 
 ## Support development
 

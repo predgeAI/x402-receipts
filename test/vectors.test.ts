@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { runVectors } from "../scripts/run-vectors.js";
+import { runLedgerVectors, runVectors } from "../scripts/run-vectors.js";
 
 const results = runVectors();
 test("vector set covers every reason code", () => {
@@ -10,3 +10,10 @@ test("vector set covers every reason code", () => {
   assert.ok(results.length >= 9);
 });
 for (const r of results) test(`vector ${r.file}`, () => assert.deepEqual(r.got, r.expected));
+
+const ledgerResults = await runLedgerVectors();
+test("Canton ledger vectors present", () => assert.ok(ledgerResults.length >= 4));
+for (const r of ledgerResults) test(`ledger vector ${r.file}`, () => {
+  assert.ok(r.requestOk, "request body differs from vector");
+  assert.deepEqual(r.got, r.expected);
+});

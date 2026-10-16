@@ -1,0 +1,36 @@
+{
+  "description": "Canton receipt signed under a kid that is not in the keyset",
+  "expect": {
+    "ok": false,
+    "reason": "unknown_kid"
+  },
+  "envelope": {
+    "payload": {
+      "version": "1",
+      "receiptId": "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20",
+      "payer": "canton:devnet:test-agent%3A%3A122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b",
+      "payee": "canton:devnet:test-merchant%3A%3A1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5",
+      "asset": "canton:devnet/cip-56:DSO%3A%3A12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071.Amulet",
+      "amount": "1000000000",
+      "settlement": {
+        "network": "canton:devnet",
+        "reference": "122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5",
+        "settledAt": "2026-10-16T09:00:03.120Z"
+      },
+      "x402": {
+        "resource": "https://api.example.com/v1/weather",
+        "paymentRequirementsHash": "sha256:93df32272c748b5f533b073fac56876100374044c57a3fb82af3c179ea0ba61a"
+      },
+      "issuer": {
+        "id": "https://api.example.com",
+        "kid": "unlisted-key-2026"
+      },
+      "issuedAt": "2026-10-16T09:00:04Z"
+    },
+    "canonical": "{\"amount\":\"1000000000\",\"asset\":\"canton:devnet/cip-56:DSO%3A%3A12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071.Amulet\",\"issuedAt\":\"2026-10-16T09:00:04Z\",\"issuer\":{\"id\":\"https://api.example.com\",\"kid\":\"unlisted-key-2026\"},\"payee\":\"canton:devnet:test-merchant%3A%3A1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5\",\"payer\":\"canton:devnet:test-agent%3A%3A122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b\",\"receiptId\":\"0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20\",\"settlement\":{\"network\":\"canton:devnet\",\"reference\":\"122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5\",\"settledAt\":\"2026-10-16T09:00:03.120Z\"},\"version\":\"1\",\"x402\":{\"paymentRequirementsHash\":\"sha256:93df32272c748b5f533b073fac56876100374044c57a3fb82af3c179ea0ba61a\",\"resource\":\"https://api.example.com/v1/weather\"}}",
+    "signature": "oPHzBpm0xIiG6f6rYdvTkKvQjqTWVPww3z2rEbGKwaxHoVCsLH-DWMEnGq1H0MXjaxWggSNXAVv035YpE-fOCw",
+    "kid": "unlisted-key-2026",
+    "alg": "ed25519",
+    "envelopeHash": "sha256:7bda9d253c5873925ec1057e8d2f19c21d4ee4709354099e7c259df3d9d0d61c"
+  }
+}

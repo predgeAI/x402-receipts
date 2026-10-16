@@ -1,13 +1,13 @@
 {
   "name": "x402-receipts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Signed, offline-verifiable receipts for x402 payments (chain-agnostic, ed25519 + RFC 8785 JCS).",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "files": ["dist", "SPEC.md", "vectors"],
+  "files": ["dist", "SPEC.md", "docs", "vectors"],
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

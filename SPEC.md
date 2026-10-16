@@ -92,3 +92,9 @@ A valid receipt proves the issuer attests to the statement. A payer SHOULD also 
 ## 9. Test vectors
 
 `vectors/` holds one valid receipt and negative cases covering every reason code. Conforming implementations MUST produce the listed reason for each.
+
+## 10. Ledger profiles
+
+Profiles fix how ledger-specific identifiers fill the generic fields and how a stakeholder cross-checks a receipt against the ledger. They do not change the format or the verification steps above.
+
+- Canton (x402 `exact` scheme): [docs/canton-profile.md](docs/canton-profile.md).

@@ -1,0 +1,157 @@
+{
+  "description": "Same receipt checked from the payer's participant: the TransferFactory_Transfer exercise confirms payer too",
+  "expect": {
+    "ok": true,
+    "reason": "ok"
+  },
+  "envelope": {
+    "payload": {
+      "version": "1",
+      "receiptId": "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20",
+      "payer": "canton:devnet:test-agent%3A%3A122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b",
+      "payee": "canton:devnet:test-merchant%3A%3A1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5",
+      "asset": "canton:devnet/cip-56:DSO%3A%3A12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071.Amulet",
+      "amount": "1000000000",
+      "settlement": {
+        "network": "canton:devnet",
+        "reference": "122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5",
+        "settledAt": "2026-10-16T09:00:03.120Z"
+      },
+      "x402": {
+        "resource": "https://api.example.com/v1/weather",
+        "paymentRequirementsHash": "sha256:93df32272c748b5f533b073fac56876100374044c57a3fb82af3c179ea0ba61a"
+      },
+      "issuer": {
+        "id": "https://api.example.com",
+        "kid": "test-key-2026-01"
+      },
+      "issuedAt": "2026-10-16T09:00:04Z"
+    },
+    "canonical": "{\"amount\":\"1000000000\",\"asset\":\"canton:devnet/cip-56:DSO%3A%3A12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071.Amulet\",\"issuedAt\":\"2026-10-16T09:00:04Z\",\"issuer\":{\"id\":\"https://api.example.com\",\"kid\":\"test-key-2026-01\"},\"payee\":\"canton:devnet:test-merchant%3A%3A1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5\",\"payer\":\"canton:devnet:test-agent%3A%3A122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b\",\"receiptId\":\"0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20\",\"settlement\":{\"network\":\"canton:devnet\",\"reference\":\"122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5\",\"settledAt\":\"2026-10-16T09:00:03.120Z\"},\"version\":\"1\",\"x402\":{\"paymentRequirementsHash\":\"sha256:93df32272c748b5f533b073fac56876100374044c57a3fb82af3c179ea0ba61a\",\"resource\":\"https://api.example.com/v1/weather\"}}",
+    "signature": "JwUVfsCbHtKQHfXWsBOng47Nk8jhmRd3twAJfd4t97fi4Q3yetC524QoUJYO5JZg15TLXc3HhyKJyCTbCRtfCQ",
+    "kid": "test-key-2026-01",
+    "alg": "ed25519",
+    "envelopeHash": "sha256:fafe7c17c8334ef4bff4f4ea247a7f07aeb395d8d3e53da2b47c1e4c8b3f9407"
+  },
+  "ledger": {
+    "readAs": "test-agent::122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b",
+    "request": {
+      "updateId": "122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5",
+      "updateFormat": {
+        "includeTransactions": {
+          "eventFormat": {
+            "filtersByParty": {
+              "test-agent::122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b": {
+                "cumulative": [
+                  {
+                    "identifierFilter": {
+                      "WildcardFilter": {
+                        "value": {
+                          "includeCreatedEventBlob": false
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "identifierFilter": {
+                      "InterfaceFilter": {
+                        "value": {
+                          "interfaceId": "#splice-api-token-holding-v1:Splice.Api.Token.HoldingV1:Holding",
+                          "includeInterfaceView": true,
+                          "includeCreatedEventBlob": false
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "verbose": true
+          },
+          "transactionShape": "TRANSACTION_SHAPE_LEDGER_EFFECTS"
+        }
+      }
+    },
+    "response": {
+      "update": {
+        "Transaction": {
+          "value": {
+            "updateId": "122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5",
+            "effectiveAt": "2026-10-16T09:00:02.950Z",
+            "events": [
+              {
+                "ExercisedEvent": {
+                  "offset": 4242,
+                  "nodeId": 0,
+                  "contractId": "007da6cda8261bbed5a243b8e750fd9e8086a1dca261de74685fced2ee06dc4b76",
+                  "templateId": "000000000000000000000000000000000000000000000000000000000000abcd:Splice.AmuletRules:AmuletRules",
+                  "interfaceId": "000000000000000000000000000000000000000000000000000000000000abcd:Splice.Api.Token.TransferInstructionV1:TransferFactory",
+                  "choice": "TransferFactory_Transfer",
+                  "choiceArgument": {
+                    "expectedAdmin": "DSO::12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071",
+                    "transfer": {
+                      "sender": "test-agent::122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b",
+                      "receiver": "test-merchant::1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5",
+                      "amount": "0.1000000000",
+                      "instrumentId": {
+                        "admin": "DSO::12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071",
+                        "id": "Amulet"
+                      },
+                      "requestedAt": "2026-10-16T09:00:00Z",
+                      "executeBefore": "2026-10-16T09:02:00Z",
+                      "inputHoldingCids": [
+                        "005bfb29c904abe50d16147169e8b4c2320a5dc90e3ef55051bb45451b9005429f"
+                      ],
+                      "meta": {
+                        "values": {}
+                      }
+                    },
+                    "extraArgs": {
+                      "context": {
+                        "values": {}
+                      },
+                      "meta": {
+                        "values": {}
+                      }
+                    }
+                  },
+                  "actingParties": [
+                    "test-agent::122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b"
+                  ],
+                  "consuming": false,
+                  "witnessParties": [
+                    "test-agent::122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b"
+                  ],
+                  "lastDescendantNodeId": 9,
+                  "exerciseResult": {
+                    "output": {
+                      "tag": "TransferInstructionResult_Completed",
+                      "value": {
+                        "receiverHoldingCids": [
+                          "00f903e5799dbfcb70a56c124c6064bb58d30f710c0c0ea0b08a2c0e7dbdc360d5"
+                        ]
+                      }
+                    },
+                    "senderChangeCids": [],
+                    "meta": {
+                      "values": {}
+                    }
+                  },
+                  "packageName": "splice-amulet",
+                  "acsDelta": false
+                }
+              }
+            ],
+            "offset": 4242,
+            "synchronizerId": "global-domain::12200ad3a370d05f27d74b017db38ba51fdc040bf98c08fe46559915b12f4b971380",
+            "recordTime": "2026-10-16T09:00:03.120Z"
+          }
+        }
+      }
+    }
+  },
+  "expectLedger": {
+    "ok": true,
+    "reason": "ok"
+  }
+}
