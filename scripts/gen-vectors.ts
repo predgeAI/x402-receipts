@@ -4,6 +4,8 @@ import { canonicalize, computeEnvelopeHash, hashJson } from "../src/canonical.js
 import { issueReceipt } from "../src/issue.js";
 import { signBytes } from "../src/keys.js";
 import type { ReceiptEnvelope, ReceiptPayload } from "../src/types.js";
+import { buildCantonReceiptPayload, updateByIdRequest } from "../src/canton.js";
+import * as C from "../test/support/canton-fixtures.js";
 import { EXPIRED_KID, EXPIRED_SEED, OTHER_SEED, TEST_KID, TEST_SEED, testKeyset } from "../test/support/test-keys.js";
 
 const dir = new URL("../vectors/", import.meta.url).pathname;
@@ -39,7 +41,7 @@ const write = (name: string, doc: unknown) =>
   writeFileSync(dir + name, typeof doc === "string" ? doc : JSON.stringify(doc, null, 2) + "\n");
 
 write("keyset.json", testKeyset());
-write("README.md", "# Test vectors\n\nTEST-ONLY keys (seeds are public strings in test/support/test-keys.ts). Regenerate with `npm run vectors:gen`; run with `npm run vectors`.\n\nEach file: `{ description, expect: { ok, reason }, envelope }`. Verify against `keyset.json`.\n");
+write("README.md", "# Test vectors\n\nTEST-ONLY keys (seeds are public strings in test/support/test-keys.ts). Regenerate with `npm run vectors:gen`; run with `npm run vectors`.\n\nEach file: `{ description, expect: { ok, reason }, envelope }`. Verify against `keyset.json`.\n\nCanton vectors (`*-canton-*`) may also carry `ledger: { readAs, request, response }` and `expectLedger: { ok, reason }`: `request` is the exact body `checkAgainstLedger` must POST to `/v2/updates/update-by-id`, `response` is a hand-built JSON Ledger API v2 response (not captured from a node). Parties and update ids are fabricated test values. See docs/canton-profile.md.\n");
 
 const valid = issueReceipt(base(), TEST_SEED, TEST_KID);
 write("valid-001.json", { description: "Valid receipt, Base Sepolia USDC settlement", expect: { ok: true, reason: "ok" }, envelope: valid });
@@ -99,6 +101,40 @@ add("neg-key-not-valid-before-validFrom", "key_not_valid_at_issuedAt", "issuedAt
   add("neg-schema-bad-alg", "schema_invalid", "alg other than ed25519", rehash(e));
 }
 
+// ---- Canton profile (docs/canton-profile.md). Level 1 = offline verify, Level 2 = ledger cross-check.
+const cantonPayload = (kid = TEST_KID) => buildCantonReceiptPayload({
+  requirements: C.requirements, settle: C.settle, resource: "https://api.example.com/v1/weather",
+  receiptId: "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20", issuer: { id: "https://api.example.com", kid },
+  settledAt: C.RECORD_TIME, issuedAt: "2026-10-16T09:00:04Z",
+});
+const ledger = (readAs: string, response: unknown) =>
+  ({ readAs, request: updateByIdRequest(C.UPDATE_ID, readAs), response });
+const cantonValid = issueReceipt(cantonPayload(), TEST_SEED, TEST_KID);
+const cantonVectors: Array<[string, string, unknown, unknown, unknown?, unknown?]> = [];
+cantonVectors.push(["valid-canton-001", "Valid Canton receipt (exact scheme, 0.1 CC on canton:devnet); payee-side ledger view confirms payee, amount, instrument",
+  { ok: true, reason: "ok" }, cantonValid, ledger(C.PAYEE, C.payeeView()), { ok: true, reason: "ok" }]);
+cantonVectors.push(["valid-canton-002-payer-view", "Same receipt checked from the payer's participant: the TransferFactory_Transfer exercise confirms payer too",
+  { ok: true, reason: "ok" }, cantonValid, ledger(C.PAYER, C.payerView()), { ok: true, reason: "ok" }]);
+{
+  const p = cantonPayload(); p.amount = "100000000000"; // 10 CC instead of 0.1
+  const e = clone(cantonValid); e.payload = p; e.canonical = canonicalize(p);
+  cantonVectors.push(["neg-canton-tampered-amount", "amount raised from 0.1 to 10 CC; canonical and envelopeHash recomputed, signature stale. Ledger also disagrees",
+    { ok: false, reason: "bad_signature" }, rehash(e), ledger(C.PAYEE, C.payeeView()), { ok: false, reason: "amount_mismatch" }]);
+}
+{
+  // The issuer itself signs a receipt naming the wrong payee: Level 1 passes, only the ledger check catches it.
+  const p = cantonPayload(); p.payee = `${C.NETWORK}:${encodeURIComponent(C.OTHER)}`;
+  cantonVectors.push(["neg-canton-wrong-party", "Correctly signed receipt naming a payee that did not receive the funds: offline check passes, ledger check fails",
+    { ok: true, reason: "ok" }, issueReceipt(p, TEST_SEED, TEST_KID), ledger(C.PAYER, C.payerView()), { ok: false, reason: "payee_mismatch" }]);
+}
+{
+  const k = "unlisted-key-2026";
+  cantonVectors.push(["neg-canton-unknown-kid", "Canton receipt signed under a kid that is not in the keyset",
+    { ok: false, reason: "unknown_kid" }, issueReceipt(cantonPayload(k), OTHER_SEED, k)]);
+}
+for (const [name, description, expect, envelope, led, expectLedger] of cantonVectors)
+  write(name + ".json", led ? { description, expect, envelope, ledger: led, expectLedger } : { description, expect, envelope });
+
 for (const [name, reason, description, envelope] of neg)
   write(name + ".json", { description, expect: { ok: false, reason }, envelope });
-console.log(`wrote ${neg.length + 1} vectors to vectors/`);
+console.log(`wrote ${neg.length + 1 + cantonVectors.length} vectors to vectors/`);
