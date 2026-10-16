@@ -1,0 +1,114 @@
+module ReceiptTest where
+
+import DA.Assert ((===))
+import DA.Date (Month(..), date)
+import DA.Time (time, addRelTime, convertMicrosecondsToRelTime)
+import DA.Optional (isNone, isSome)
+import Daml.Script
+import X402.Receipt
+
+data Parties = Parties with merchant : Party; agent : Party; outsider : Party
+
+setupParties : Script Parties
+setupParties = do
+  merchant <- allocatePartyByHint (PartyIdHint "test-merchant")
+  agent <- allocatePartyByHint (PartyIdHint "test-agent")
+  outsider <- allocatePartyByHint (PartyIdHint "outsider")
+  pure Parties with ..
+
+-- 1. The issuer records a receipt; the payer sees it, a non-stakeholder does not.
+test_create_and_visibility : Script ()
+test_create_and_visibility = do
+  Parties{..} <- setupParties
+  cid <- submit merchant do createCmd (vectorReceipt merchant agent)
+  seenByPayer <- queryContractId agent cid
+  assertMsg "payer must see the record" (isSome seenByPayer)
+  fmap (.receiptId) seenByPayer === Some "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20"
+  fmap (.canonical) seenByPayer === Some (vectorReceipt merchant agent).canonical
+  seenByOutsider <- queryContractId outsider cid
+  assertMsg "outsider must not see the record" (isNone seenByOutsider)
+  outsiderAll <- query @ReceiptRecord outsider
+  outsiderAll === []
+
+-- 2. Only the issuer can create a record in its name.
+test_only_issuer_can_create : Script ()
+test_only_issuer_can_create = do
+  Parties{..} <- setupParties
+  submitMustFail agent do createCmd (vectorReceipt merchant agent)
+  submitMustFail outsider do createCmd (vectorReceipt merchant agent)
+
+-- 3. Fields that are also in the signed canonical text must agree with it.
+test_ensure_rejects_inconsistent_fields : Script ()
+test_ensure_rejects_inconsistent_fields = do
+  Parties{..} <- setupParties
+  let r = vectorReceipt merchant agent
+  submitMustFail merchant do createCmd r with amount = "2000000000"
+  submitMustFail merchant do createCmd r with amount = "01000000000"
+  submitMustFail merchant do createCmd r with settlementUpdateId = "1220deadbeef"
+  submitMustFail merchant do createCmd r with receiptId = "other-id"
+  submitMustFail merchant do createCmd r with envelopeHash = "sha256:XYZ"
+  submitMustFail merchant do createCmd r with payer = merchant
+
+-- 4. Duplicate receiptId. Daml 3 (LF 2) has no contract keys, so the ledger does NOT reject a
+-- second record with the same (issuer, receiptId). This test pins that behaviour; issuers must
+-- dedupe before submitting (scripts/canton-localnet-demo.ts queries the ACS first), and readers
+-- should treat (issuer, receiptId) as the identity and the oldest record as authoritative.
+test_duplicate_receipt_id_not_rejected_by_ledger : Script ()
+test_duplicate_receipt_id_not_rejected_by_ledger = do
+  Parties{..} <- setupParties
+  let r = vectorReceipt merchant agent
+  _ <- submit merchant do createCmd r
+  _ <- submit merchant do createCmd r
+  recs <- query @ReceiptRecord agent
+  let same = filter (\(_, x) -> x.issuer == merchant && x.receiptId == r.receiptId) recs
+  length same === 2
+
+-- 5. The payer acknowledges: the record is replaced by one signed by both parties.
+test_acknowledge : Script ()
+test_acknowledge = do
+  Parties{..} <- setupParties
+  cid <- submit merchant do createCmd (vectorReceipt merchant agent)
+  submitMustFail merchant do exerciseCmd cid Acknowledge
+  submitMustFail outsider do exerciseCmd cid Acknowledge
+  ackCid <- submit agent do exerciseCmd cid Acknowledge
+  gone <- queryContractId merchant cid
+  assertMsg "original record is archived" (isNone gone)
+  ackByIssuer <- queryContractId merchant ackCid
+  ackByPayer <- queryContractId agent ackCid
+  ackByOutsider <- queryContractId outsider ackCid
+  assertMsg "issuer sees acknowledgement" (isSome ackByIssuer)
+  assertMsg "payer sees acknowledgement" (isSome ackByPayer)
+  assertMsg "outsider does not" (isNone ackByOutsider)
+  fmap (.receipt.envelopeHash) ackByPayer === Some (vectorReceipt merchant agent).envelopeHash
+
+-- 6. Issuer can withdraw an unacknowledged record (standard Archive); the payer cannot.
+test_archive_by_issuer_only : Script ()
+test_archive_by_issuer_only = do
+  Parties{..} <- setupParties
+  cid <- submit merchant do createCmd (vectorReceipt merchant agent)
+  submitMustFail agent do archiveCmd cid
+  submit merchant do archiveCmd cid
+  gone <- queryContractId agent cid
+  assertMsg "archived" (isNone gone)
+
+-- Generated from vectors/valid-canton-001.json (TEST-ONLY key, synthetic devnet ids).
+vectorReceipt : Party -> Party -> ReceiptRecord
+vectorReceipt issuer payer = ReceiptRecord with
+  issuer
+  payer
+  receiptId = "0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20"
+  payerAccount = "canton:devnet:test-agent%3A%3A122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b"
+  payeeAccount = "canton:devnet:test-merchant%3A%3A1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5"
+  asset = "canton:devnet/cip-56:DSO%3A%3A12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071.Amulet"
+  amount = "1000000000"
+  network = "canton:devnet"
+  settlementUpdateId = "122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5"
+  settledAt = addRelTime (time (date 2026 Oct 16) 9 0 3) (convertMicrosecondsToRelTime 120000)
+  resource = "https://api.example.com/v1/weather"
+  paymentRequirementsHash = "sha256:93df32272c748b5f533b073fac56876100374044c57a3fb82af3c179ea0ba61a"
+  issuerId = "https://api.example.com"
+  kid = "test-key-2026-01"
+  issuedAt = time (date 2026 Oct 16) 9 0 4
+  canonical = "{\"amount\":\"1000000000\",\"asset\":\"canton:devnet/cip-56:DSO%3A%3A12207412d710baf8159faf803cf83dc1553e112bd6e5b2904e3c6c23dde57d7bf071.Amulet\",\"issuedAt\":\"2026-10-16T09:00:04Z\",\"issuer\":{\"id\":\"https://api.example.com\",\"kid\":\"test-key-2026-01\"},\"payee\":\"canton:devnet:test-merchant%3A%3A1220b3156f9c7624c09c1480d364d73bb11c3d3db9a2a940238239c6f08be14f64d5\",\"payer\":\"canton:devnet:test-agent%3A%3A122069a7598902e285fb880cc00f9af3400d20ef9008f98129f275ee0e5763acf57b\",\"receiptId\":\"0192f3a0-7b1e-7c3a-9d52-5a1c0e7b4f20\",\"settlement\":{\"network\":\"canton:devnet\",\"reference\":\"122091ae4233bbc56898e89ca90ca566f8b5b2de9e45c617a4bf90f364eb7edaa1f5\",\"settledAt\":\"2026-10-16T09:00:03.120Z\"},\"version\":\"1\",\"x402\":{\"paymentRequirementsHash\":\"sha256:93df32272c748b5f533b073fac56876100374044c57a3fb82af3c179ea0ba61a\",\"resource\":\"https://api.example.com/v1/weather\"}}"
+  signature = "JwUVfsCbHtKQHfXWsBOng47Nk8jhmRd3twAJfd4t97fi4Q3yetC524QoUJYO5JZg15TLXc3HhyKJyCTbCRtfCQ"
+  envelopeHash = "sha256:fafe7c17c8334ef4bff4f4ea247a7f07aeb395d8d3e53da2b47c1e4c8b3f9407"

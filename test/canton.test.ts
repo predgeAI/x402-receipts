@@ -114,3 +114,25 @@ test("checkAgainstLedger: not found, errors, non-Canton receipts", async () => {
   const evm = (await import("../vectors/valid-001.json", { with: { type: "json" } })).default.envelope;
   assert.equal((await checkAgainstLedger(evm as any, C.mockLedger({}).fetchFn, opts)).reason, "not_canton_receipt");
 });
+
+test("checkAgainstLedger retries without the Holding filter on PACKAGE_NAMES_NOT_FOUND (seen on a real 3.6 sandbox)", async () => {
+  const replies: Array<[number, unknown]> = [
+    [404, { code: "PACKAGE_NAMES_NOT_FOUND", cause: "The following package names do not match upgradable packages uploaded on this participant: [splice-api-token-holding-v1]." }],
+    [404, { code: "UPDATE_NOT_FOUND", cause: "Update not found, or not visible." }],
+  ];
+  const calls: string[] = [];
+  const fetchFn: FetchFn = async (_url, init) => {
+    calls.push(init.body);
+    const [status, body] = replies.shift()!;
+    return { ok: status < 300, status, json: async () => body };
+  };
+  const r = await checkAgainstLedger(build(), fetchFn, { ledgerUrl: LEDGER, readAs: C.PAYEE });
+  assert.equal(r.reason, "update_not_found");
+  assert.equal(r.detail, "UPDATE_NOT_FOUND");
+  assert.equal(calls.length, 2);
+  assert.deepEqual(JSON.parse(calls[0]), updateByIdRequest(C.UPDATE_ID, C.PAYEE));
+  assert.deepEqual(JSON.parse(calls[1]), updateByIdRequest(C.UPDATE_ID, C.PAYEE, false));
+  // a payee view without interface views (no token standard) is not a confirmed transfer
+  const r2 = await checkAgainstLedger(build(), C.mockLedger({ update: { Transaction: { value: { updateId: C.UPDATE_ID, events: [] } } } }).fetchFn, { ledgerUrl: LEDGER, readAs: C.PAYEE });
+  assert.equal(r2.reason, "no_transfer_visible");
+});

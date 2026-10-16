@@ -1,0 +1,8 @@
+# dpm test (Daml SDK 3.6.0, dpm 1.0.22, JDK 21.0.12 arm64), 2026-10-16
+daml/ReceiptTest.daml:setupParties: ok, 0 active contracts, 0 transactions.
+daml/ReceiptTest.daml:test_archive_by_issuer_only: ok, 0 active contracts, 3 transactions.
+daml/ReceiptTest.daml:test_create_and_visibility: ok, 1 active contracts, 1 transactions.
+daml/ReceiptTest.daml:test_duplicate_receipt_id_not_rejected_by_ledger: ok, 2 active contracts, 2 transactions.
+daml/ReceiptTest.daml:test_ensure_rejects_inconsistent_fields: ok, 0 active contracts, 6 transactions.
+daml/ReceiptTest.daml:test_only_issuer_can_create: ok, 0 active contracts, 2 transactions.
+daml/ReceiptTest.daml:test_acknowledge: ok, 1 active contracts, 4 transactions.

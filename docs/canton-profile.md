@@ -1,10 +1,10 @@
-# Canton profile for x402 receipts (M2a)
+# Canton profile for x402 receipts (M2a, M2b)
 
 Status: draft, prototype (16 Oct 2026). Code: [`src/canton.ts`](../src/canton.ts). Vectors: `vectors/*canton*.json`.
 
 This profile says how a v1 receipt ([SPEC.md](../SPEC.md)) describes an x402 payment settled on Canton with the `exact` scheme, and how the holder of a receipt checks it. It does not change the receipt format: a Canton receipt is a normal v1 receipt with Canton identifiers in it.
 
-It has **not** been run against a live participant yet. The ledger responses in tests and vectors are hand-built from the published OpenAPI schema, not captured from a node. Every point where we had to infer behaviour is listed under [Assumptions and open questions](#assumptions-and-open-questions). Running this against Canton LocalNet/DevNet is part of M2b.
+Live-node status (16 Oct 2026): the on-ledger record (M2b, [section 5](#5-on-ledger-receipt-record-m2b)) and the JSON Ledger API calls of `checkAgainstLedger` have been run against a local Canton 3.6.1 sandbox (single participant, in memory). The **positive** Level 2 path (confirming a real CIP-56 / Canton Coin transfer) has **not** been run on a live node yet, because a plain sandbox has no token-standard packages; those ledger responses in tests and vectors are still hand-built from the published OpenAPI schema. Every point where we had to infer behaviour is listed under [Assumptions and open questions](#assumptions-and-open-questions).
 
 ## Sources
 
@@ -149,13 +149,45 @@ Canton vectors carry `ledger: { readAs, request, response }` and `expectLedger`.
 
 1. **Network id.** The x402 scheme uses `canton:mainnet` / `canton:testnet` / `canton:devnet`. The CAIP namespace draft (PR #201) proposes `canton:mainnet-global` etc. We follow the x402 scheme, because that is what the facilitator returns and what the payer accepted. If the CAIP draft is merged as is, a mapping (or a receipt version bump) will be needed. We do not map network ids to synchronizer ids; pass `expectedSynchronizerId` (for example `requirements.extra.synchronizerId`) to pin one.
 2. **Party encoding in account ids.** Percent-encoding follows the open CAIP draft. The x402 scheme itself uses raw party ids in `payTo`.
-3. **JSON encoding of Daml values.** We assume `Decimal` is a string (`"0.1000000000"`) and variants are `{ "tag": ..., "value": ... }` (Daml-LF JSON encoding), with `verbose: true` giving labelled records. To confirm on a live node.
+3. **JSON encoding of Daml values.** We assume `Decimal` is a string (`"0.1000000000"`) and variants are `{ "tag": ..., "value": ... }` (Daml-LF JSON encoding), with `verbose: true` giving labelled records. Labelled records, `Time` as RFC 3339 strings and `Text` fields confirmed on the 3.6.1 sandbox (section 5); `Decimal` and variants in token-standard events still to confirm.
 4. **Payee visibility.** That the receiver does not witness the root `TransferFactory_Transfer` exercise is inferred from the interface (controller `transfer.sender`, no choice observers). The Amulet implementation may expose more to the receiver; the code uses the exercise whenever it is visible.
 5. **Holding view amount for Amulet.** We assume the `Holding` view `amount` of a newly created Amulet equals the transferred amount (no holding fee has accrued in the creating transaction).
 6. **Atomic units for other CIP-56 instruments.** The scheme defines 1 CC = 10^10 atomic units. We apply the same 10-decimal rule to any CIP-56 instrument, because token-standard amounts are Daml `Decimal`. The exact scheme currently settles Canton Coin only.
-7. **Interface id format in filters.** The request uses the package-name reference (`#splice-api-token-holding-v1:...`); the OpenAPI notes that the package-id form is deprecated. Responses use package-id references, so matching is by suffix.
-8. **Update id format.** Validation accepts lowercase hex only. If a participant returns another form, the validator is too strict and should be relaxed.
+7. **Interface id format in filters.** The request uses the package-name reference (`#splice-api-token-holding-v1:...`); the OpenAPI notes that the package-id form is deprecated. Responses use package-id references, so matching is by suffix (confirmed on the 3.6.1 sandbox). A participant that has not uploaded `splice-api-token-holding-v1` rejects the whole request with `PACKAGE_NAMES_NOT_FOUND` (HTTP 404); `checkAgainstLedger` then retries once without the Holding filter, so the answer is about the update, not about the filter. Found on the live sandbox run; before that fix the error was misreported as `update_not_found`.
+8. **Update id format.** Validation accepts lowercase hex only. If a participant returns another form, the validator is too strict and should be relaxed. Observed on the 3.6.1 sandbox: `1220` + 64 lowercase hex.
 
-## Next (M2b)
+## 5. On-ledger receipt record (M2b)
 
-A Daml `Receipt` template (signatory issuer, observers payer and payee) created in a follow-up transaction that references the `updateId`, an issuer service that listens to settle responses, and a public run on LocalNet/DevNet with published update ids. Until that is built and tested with the Daml SDK, this repo contains no Daml code.
+Daml package [`daml/x402-receipt`](../daml/x402-receipt/daml/X402/Receipt.daml) (Daml SDK 3.6.0, Daml-LF 2), tests in [`daml/x402-receipt-test`](../daml/x402-receipt-test/daml/ReceiptTest.daml).
+
+After settlement, the issuer (the x402 server's party, normally the payee) creates a `ReceiptRecord` in a **separate, follow-up transaction**. The record holds no funds and does not touch the payment; it puts the signed receipt on the ledger, visible only to its stakeholders.
+
+| | |
+|---|---|
+| signatory | `issuer` |
+| observer | `payer` |
+| fields | `receiptId`, `payerAccount`, `payeeAccount` (CAIP-10, as signed), `asset` (CAIP-19), `amount` (Text, atomic units), `network`, `settlementUpdateId` (= `settlement.reference`), `settledAt`, `resource`, `paymentRequirementsHash`, `issuerId`, `kid`, `issuedAt`, and the envelope's `canonical`, `signature`, `envelopeHash` byte for byte |
+| `ensure` | issuer differs from payer; amount is a decimal integer string without leading zeros; update id is lowercase hex; both hashes are `sha256:` + 64 hex; `receiptId`, `settlementUpdateId` and `amount` appear verbatim in the signed `canonical` text |
+| choice `Acknowledge` | controller `payer`; archives the record and creates `AcknowledgedReceipt` (signatories issuer **and** payer): the payer's co-signature that it received the receipt. Moves no funds. |
+| `Archive` | issuer only (standard); lets the issuer withdraw an unacknowledged record |
+
+**Why `amount` is Text in atomic units, not `Decimal`.** The receipt is chain-agnostic and the signed value is an atomic-unit integer string. Daml `Decimal` is `Numeric 10` (10 fraction digits, 38 digits total): it cannot hold an 18-decimal EVM amount exactly, and converting would create a second representation of the amount that is not the signed one. Keeping the exact signed string lets anyone compare the field with `canonical` (the template already checks it is contained there) and re-verify the signature. For Canton Coin the conversion is `atomicToDecimal` (1 CC = 10^10).
+
+**Uniqueness of (issuer, receiptId).** Daml 3 / Daml-LF 2 has no contract keys (the 3.6 sandbox offers experimental non-unique keys behind `--nuck`; we do not depend on it), so the ledger does **not** reject a second record with the same receiptId. A Daml Script test pins this behaviour. The issuer dedupes before submitting (the demo script queries its active contracts first and refuses a duplicate); readers treat (issuer, receiptId) as the identity and the oldest record as authoritative.
+
+**What the ledger does not check.** Daml has no ed25519 builtin, so the signature is not verified on ledger; anyone holding the record re-runs Level 1 off ledger from `canonical`, `signature` and the issuer's keyset. The template does not tie the `payer` Party to the `payerAccount` string or `settlementUpdateId` to a real transfer; the issuer-side script checks the first, `checkAgainstLedger` (Level 2) checks the second.
+
+**Tests.** `cd daml && dpm build --all && cd x402-receipt-test && dpm test` runs 6 Daml Script tests: create + payer sees it + outsider does not; only the issuer can create; `ensure` rejects fields that disagree with `canonical`; duplicate receiptId is not rejected by the ledger; payer acknowledges (issuer and outsider cannot); only the issuer can archive. Output: [`docs/runs/m2b-daml-script-tests-2026-10-16.txt`](runs/m2b-daml-script-tests-2026-10-16.txt).
+
+**Sandbox run.** [`scripts/canton-localnet-demo.ts`](../scripts/canton-localnet-demo.ts) (`npm run canton:demo`) runs against a local participant's JSON Ledger API v2: uploads the DAR (`POST /v2/packages`), allocates parties, issues a receipt with the TEST-ONLY key (or takes `ENVELOPE=<file>`), verifies it (Level 1), dedupes, creates the `ReceiptRecord` (`POST /v2/commands/submit-and-wait`), reads it back as payer (`POST /v2/updates/update-by-id`) and as an outsider, re-verifies the copy read from the ledger, has the payer `Acknowledge`, and runs `checkAgainstLedger`. Captured output from a Canton 3.6.1 sandbox: [`docs/runs/m2b-sandbox-run-2026-10-16.json`](runs/m2b-sandbox-run-2026-10-16.json). In that run:
+
+- `ReceiptRecord` created, updateId `1220c6766693f0f1e7734958e2fc2537f59fea4819b624ee9a748a376c8d0c75b00e`; the payer's view shows signatory issuer, observer payer, `canonical` identical to the envelope, and Level 1 verification of the ledger copy returns `ok`;
+- the outsider gets `404 UPDATE_NOT_FOUND` ("not found, or not visible") for the same update;
+- the payer's `Acknowledge` update `1220c708cb2ab30b7c8caa9082bb8357a985c7684fa3c816de6a9194c100a3e0c61d` creates an `AcknowledgedReceipt` signed by both parties;
+- `checkAgainstLedger` on the receipt's (synthetic) settlement reference returns `update_not_found`, and pointed at the real `ReceiptRecord` update returns `no_transfer_visible`.
+
+Limits of that run: a local, in-memory sandbox, so the update ids cannot be looked up by anyone else; no token standard installed, so there is no real payment and the receipt's `settlement.reference` is a synthetic id (labelled `synthetic_settlement: true` in the log); keys are TEST-ONLY.
+
+## Next
+
+A run on LocalNet (Splice) or DevNet with a real Canton Coin transfer through the exact scheme, so that Level 2 confirms payer, payee, amount and instrument from a live node and the published update ids can be checked by the stakeholders; an issuer service that listens to settle responses and records receipts automatically.

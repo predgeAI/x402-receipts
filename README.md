@@ -1,6 +1,6 @@
 # x402-receipts
 
-Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. MIT licensed. Status: prototype, not audited. M1 done; M2a (Canton profile + ledger cross-check) done.
+Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. MIT licensed. Status: prototype, not audited. M1 done; M2a (Canton profile + ledger cross-check) done; M2b (Daml on-ledger receipt record) compiled, tested and run on a local Canton sandbox.
 
 ## Why receipts matter
 
@@ -13,7 +13,7 @@ Requires Node 20+.
 ```bash
 git clone https://github.com/predgeAI/x402-receipts && cd x402-receipts
 npm install                 # ~85 packages, dev-only (express, tsx, typescript)
-npm test                    # 41 tests, includes all vectors, the Canton profile and the express example
+npm test                    # 42 tests, includes all vectors, the Canton profile and the express example
 npm run vectors             # human-readable vector report
 ```
 
@@ -57,7 +57,15 @@ const r = await checkAgainstLedger(envelope, fetch, { ledgerUrl: "http://localho
 
 Field mapping, the exact JSON API request, what each party can prove under Canton privacy, and the assumptions not yet tested on a live node: [docs/canton-profile.md](docs/canton-profile.md).
 
-Layout: `src/` library (`src/canton.ts` for Canton), `docs/` profiles, `vectors/` conformance vectors (`npm run vectors:gen` regenerates), `examples/x402-express/` server and client, `test/` node:test suites.
+On-ledger record (Daml SDK 3.6, needs `dpm` and JDK 17+; see [section 5 of the Canton profile](docs/canton-profile.md#5-on-ledger-receipt-record-m2b)):
+
+```bash
+cd daml && dpm build --all && (cd x402-receipt-test && dpm test)   # 6 Daml Script tests
+dpm sandbox --json-api-port 7575                                    # terminal 1: local participant
+npm run canton:demo                                                 # terminal 2: record + read back + acknowledge
+```
+
+Layout: `src/` library (`src/canton.ts` for Canton), `docs/` profiles, `vectors/` conformance vectors (`npm run vectors:gen` regenerates), `examples/x402-express/` server and client, `test/` node:test suites, `daml/` the Daml package and its Daml Script tests, `docs/runs/` captured test and sandbox output.
 
 ## Design notes
 
@@ -68,8 +76,8 @@ Layout: `src/` library (`src/canton.ts` for Canton), `docs/` profiles, `vectors/
 ## Roadmap
 
 - M1 (done): spec, library, vectors, express example.
-- M2a (done, this commit): Canton profile. Receipt fields for the x402 exact-Canton scheme (`settlement.reference` = ledger `updateId`, party ids, CIP-56 instrument ids), a builder from the facilitator's settle response, and `checkAgainstLedger`, which cross-checks payer, payee, amount and asset against the verifier's own participant via the JSON Ledger API v2. Tested against mocked ledger responses only; not yet run against a live participant.
-- M2b (next): Daml template on Canton that records receipts on-ledger (signatory issuer, observers payer and payee) in a follow-up transaction referencing the `updateId`, plus a LocalNet/DevNet run with published update ids.
+- M2a (done): Canton profile. Receipt fields for the x402 exact-Canton scheme (`settlement.reference` = ledger `updateId`, party ids, CIP-56 instrument ids), a builder from the facilitator's settle response, and `checkAgainstLedger`, which cross-checks payer, payee, amount and asset against the verifier's own participant via the JSON Ledger API v2.
+- M2b (partly done): Daml `ReceiptRecord` template (signatory issuer, observer payer; payer `Acknowledge` co-signs; no custody of funds) recorded in a follow-up transaction that references the settlement `updateId`. Done: compiles on Daml SDK 3.6.0, 6 Daml Script tests pass, and a run on a local Canton 3.6.1 sandbox through the JSON Ledger API v2 (create, payer and outsider views, acknowledge, Level 2 call), with the captured log in `docs/runs/`. The live run found and fixed a `checkAgainstLedger` bug (participants without the token-standard package returned `PACKAGE_NAMES_NOT_FOUND`, misreported as `update_not_found`). Not done yet: a LocalNet/DevNet run with a real Canton Coin transfer, so Level 2 has still only been tested positive against mocked responses, and update ids that others can check.
 - M3: SDK polish and integration guide (packaging, more languages for verification, key-rotation and revocation guidance).
 - M4 (planned): p402 adapter.
 
