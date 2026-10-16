@@ -16,7 +16,8 @@
     "vectors": "node --import tsx scripts/run-vectors.ts",
     "vectors:gen": "node --import tsx scripts/gen-vectors.ts",
     "example:server": "node --import tsx examples/x402-express/server.ts",
-    "example:client": "node --import tsx examples/x402-express/client.ts"
+    "example:client": "node --import tsx examples/x402-express/client.ts",
+    "canton:demo": "node --import tsx scripts/canton-localnet-demo.ts"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

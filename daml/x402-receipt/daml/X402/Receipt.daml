@@ -1,0 +1,97 @@
+-- | On-ledger record of a signed x402 receipt (M2b). See docs/canton-profile.md, "On-ledger receipt record".
+--
+-- The record is created by the x402 server (payee) in a follow-up transaction after settlement.
+-- It holds no funds and has no effect on the payment: it only makes the signed receipt visible,
+-- with Canton privacy, to the two stakeholders (issuer and payer), and lets the payer co-sign
+-- that they received it.
+module X402.Receipt where
+
+import qualified DA.Text as T
+
+-- | A signed x402 receipt, recorded on ledger by its issuer.
+--
+-- Field mapping to the off-ledger envelope (SPEC.md, src/types.ts):
+--   receiptId                -> payload.receiptId
+--   payerAccount/payeeAccount -> payload.payer / payload.payee (CAIP-10 strings, as signed)
+--   asset                    -> payload.asset (CAIP-19, as signed)
+--   amount                   -> payload.amount (atomic units, decimal integer string, as signed)
+--   network                  -> payload.settlement.network
+--   settlementUpdateId       -> payload.settlement.reference (ledger updateId of the payment)
+--   settledAt / issuedAt     -> payload.settlement.settledAt / payload.issuedAt
+--   resource                 -> payload.x402.resource
+--   paymentRequirementsHash  -> payload.x402.paymentRequirementsHash
+--   issuerId / kid           -> payload.issuer.id / envelope.kid
+--   canonical / signature / envelopeHash -> the envelope fields, byte for byte
+--
+-- The ledger does not verify the ed25519 signature (Daml has no ed25519 builtin). Anyone holding
+-- the record can re-run Level 1 verification off ledger from `canonical`, `signature` and the
+-- issuer's published keyset.
+template ReceiptRecord
+  with
+    issuer : Party
+      -- ^ party of the x402 server that issued the receipt (normally the payee)
+    payer : Party
+      -- ^ party that paid; the party encoded in payerAccount (checked by the issuer before submitting, not on ledger)
+    receiptId : Text
+    payerAccount : Text
+    payeeAccount : Text
+    asset : Text
+    amount : Text
+      -- ^ atomic units as a decimal integer string; see "Why amount is Text" in the docs
+    network : Text
+    settlementUpdateId : Text
+    settledAt : Time
+    resource : Text
+    paymentRequirementsHash : Text
+    issuerId : Text
+    kid : Text
+    issuedAt : Time
+    canonical : Text
+    signature : Text
+    envelopeHash : Text
+  where
+    signatory issuer
+    observer payer
+
+    ensure
+      issuer /= payer
+        && receiptId /= ""
+        && isAtomicAmount amount
+        && isLowerHex settlementUpdateId
+        && isSha256Tag paymentRequirementsHash
+        && isSha256Tag envelopeHash
+        && canonical /= ""
+        && signature /= ""
+        && kid /= ""
+        && T.isInfixOf ("\"receiptId\":\"" <> receiptId <> "\"") canonical
+        && T.isInfixOf ("\"reference\":\"" <> settlementUpdateId <> "\"") canonical
+        && T.isInfixOf ("\"amount\":\"" <> amount <> "\"") canonical
+
+    -- | The payer confirms they received the receipt. Archives the issuer-only record and
+    -- replaces it with one signed by both parties. Moves no funds.
+    choice Acknowledge : ContractId AcknowledgedReceipt
+      controller payer
+      do
+        now <- getTime
+        create AcknowledgedReceipt with receipt = this; acknowledgedAt = now
+
+-- | A receipt both parties have signed: the issuer by creating it, the payer by acknowledging it.
+template AcknowledgedReceipt
+  with
+    receipt : ReceiptRecord
+    acknowledgedAt : Time
+  where
+    signatory receipt.issuer, receipt.payer
+
+-- | Decimal integer string without sign or leading zeros ("0" allowed).
+isAtomicAmount : Text -> Bool
+isAtomicAmount a =
+  a /= "" && T.isDigit a && (a == "0" || not (T.isPrefixOf "0" a)) && T.length a <= 78
+
+isLowerHex : Text -> Bool
+isLowerHex s = T.length s >= 8 && T.length s <= 255 && all (`elem` T.explode "0123456789abcdef") (T.explode s)
+
+isSha256Tag : Text -> Bool
+isSha256Tag s = case T.stripPrefix "sha256:" s of
+  Some h -> T.length h == 64 && isLowerHex h
+  None -> False

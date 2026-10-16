@@ -236,8 +236,13 @@ export interface LedgerCheckResult {
   synchronizerId?: string;
 }
 
-/** Exact request body sent to POST /v2/updates/update-by-id. */
-export function updateByIdRequest(updateId: string, readAs: string) {
+/**
+ * Exact request body sent to POST /v2/updates/update-by-id. With `includeHoldingView` false the CIP-56
+ * Holding interface filter is left out; checkAgainstLedger retries that way when the participant does
+ * not know the token-standard package (PACKAGE_NAMES_NOT_FOUND, observed on a plain Canton 3.6 sandbox).
+ */
+export function updateByIdRequest(updateId: string, readAs: string, includeHoldingView = true) {
+  const holding = { identifierFilter: { InterfaceFilter: { value: { interfaceId: HOLDING_INTERFACE, includeInterfaceView: true, includeCreatedEventBlob: false } } } };
   return {
     updateId,
     updateFormat: {
@@ -247,7 +252,7 @@ export function updateByIdRequest(updateId: string, readAs: string) {
             [readAs]: {
               cumulative: [
                 { identifierFilter: { WildcardFilter: { value: { includeCreatedEventBlob: false } } } },
-                { identifierFilter: { InterfaceFilter: { value: { interfaceId: HOLDING_INTERFACE, includeInterfaceView: true, includeCreatedEventBlob: false } } } },
+                ...(includeHoldingView ? [holding] : []),
               ],
             },
           },
@@ -296,11 +301,16 @@ export async function checkAgainstLedger(
   if (opts.token) headers.authorization = `Bearer ${opts.token}`;
   let body: any;
   let res: Awaited<ReturnType<FetchFn>>;
+  const url = opts.ledgerUrl.replace(/\/$/, "") + "/v2/updates/update-by-id";
   try {
-    res = await fetchFn(opts.ledgerUrl.replace(/\/$/, "") + "/v2/updates/update-by-id", {
-      method: "POST", headers, body: JSON.stringify(updateByIdRequest(p.settlement.reference, opts.readAs)),
-    });
+    res = await fetchFn(url, { method: "POST", headers, body: JSON.stringify(updateByIdRequest(p.settlement.reference, opts.readAs)) });
     body = await res.json().catch(() => undefined);
+    // A participant without the token-standard packages rejects the Holding interface filter with
+    // PACKAGE_NAMES_NOT_FOUND (HTTP 404). That says nothing about the update: retry without the filter.
+    if (!res.ok && obj(body)?.code === "PACKAGE_NAMES_NOT_FOUND") {
+      res = await fetchFn(url, { method: "POST", headers, body: JSON.stringify(updateByIdRequest(p.settlement.reference, opts.readAs, false)) });
+      body = await res.json().catch(() => undefined);
+    }
   } catch (e) {
     return fail("ledger_error", (e as Error).message);
   }

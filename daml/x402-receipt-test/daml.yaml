@@ -1,0 +1,10 @@
+sdk-version: 3.6.0
+name: x402-receipt-test
+source: daml
+version: 0.1.0
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+data-dependencies:
+  - ../x402-receipt/.daml/dist/x402-receipt-0.1.0.dar

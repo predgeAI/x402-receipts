@@ -1,0 +1,120 @@
+{
+  "capturedAt": "2026-10-16T08:43:58.544Z",
+  "steps": [
+    {
+      "step": "participant",
+      "ledgerUrl": "http://localhost:7575",
+      "version": "3.6.1"
+    },
+    {
+      "step": "upload_dar",
+      "dar": "x402-receipt-0.1.0.dar",
+      "sha256": "c8687f1b400ce4a4a67deb7edfa5a92b79b8faf1b7a8ad3ef8448668de58b3f2",
+      "status": 200
+    },
+    {
+      "step": "parties",
+      "merchant": "test-merchant-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86",
+      "agent": "test-agent-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86",
+      "registry": "test-registry-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86",
+      "outsider": "outsider-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86"
+    },
+    {
+      "step": "level1_offline_verify",
+      "receiptId": "12bbb9cc-054e-4e5e-935f-12c023b8e980",
+      "envelopeHash": "sha256:4b956fbec89d852390e7b4fdd33449b4b1d469d1da9aaff1cf4e16a913b4ea12",
+      "settlementReference": "122088adf59964d142378c5764d8ade9a889128bf4ea1448da6d9652d3e2d6af8d0d",
+      "synthetic_settlement": true,
+      "result": "ok"
+    },
+    {
+      "step": "dedupe_check_before_create",
+      "activeWithSameReceiptId": 0
+    },
+    {
+      "step": "create_receipt_record",
+      "request": "POST /v2/commands/submit-and-wait (CreateCommand X402.Receipt:ReceiptRecord, actAs issuer)",
+      "response": {
+        "updateId": "1220c6766693f0f1e7734958e2fc2537f59fea4819b624ee9a748a376c8d0c75b00e",
+        "completionOffset": 22
+      }
+    },
+    {
+      "step": "payer_view",
+      "status": 200,
+      "recordTime": "2026-10-16T08:43:57.591919Z",
+      "templateId": "c6b88aeb4243673b3d323e942994a58c33ab9df137b4fad225df3358f6d296bc:X402.Receipt:ReceiptRecord",
+      "contractId": "00cac506fe44a1e0fe2c2bc3a2af403658677b354c9c2fc2934b8d54b65f75d377ca121220ac2623dc5decc53ea3c39ec09e3c57509539d122d5f7a9558d4456e9da954ff1",
+      "signatories": [
+        "test-merchant-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86"
+      ],
+      "observers": [
+        "test-agent-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86"
+      ],
+      "receiptId": "12bbb9cc-054e-4e5e-935f-12c023b8e980",
+      "envelopeHash": "sha256:4b956fbec89d852390e7b4fdd33449b4b1d469d1da9aaff1cf4e16a913b4ea12",
+      "canonicalMatchesEnvelope": true
+    },
+    {
+      "step": "outsider_view",
+      "status": 404,
+      "code": "UPDATE_NOT_FOUND",
+      "cause": "Update not found, or not visible."
+    },
+    {
+      "step": "level1_verify_from_ledger_copy",
+      "result": "ok"
+    },
+    {
+      "step": "duplicate_attempt",
+      "activeWithSameReceiptId": 1,
+      "action": "refused by issuer-side dedupe, not submitted"
+    },
+    {
+      "step": "payer_acknowledge",
+      "response": {
+        "updateId": "1220c708cb2ab30b7c8caa9082bb8357a985c7684fa3c816de6a9194c100a3e0c61d",
+        "completionOffset": 25
+      },
+      "acknowledgedContractId": "0043ffa5980700699d30ea4b8c860970164630e94f4680df3b79f40bec5bf62e4fca12122028ede566e2ec923ea0b1bd7d000232b9028ff49152ee289da23f06c5834de15f",
+      "signatories": [
+        "test-agent-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86",
+        "test-merchant-mvaq0wj6::12203bb749f4c2e2307fc775e7fd9368066c75a7734f943788109915b97617dd7f86"
+      ],
+      "templateIdUsed": "#x402-receipt:X402.Receipt:AcknowledgedReceipt"
+    },
+    {
+      "step": "level2_checkAgainstLedger_settlement_reference",
+      "note": "settlement.reference is synthetic on a plain sandbox (no CIP-56 token), so update_not_found is the expected, correct answer",
+      "result": {
+        "ok": false,
+        "reason": "update_not_found",
+        "detail": "UPDATE_NOT_FOUND",
+        "checks": {
+          "payer": "not_visible",
+          "payee": "not_visible",
+          "amount": "not_visible",
+          "asset": "not_visible"
+        }
+      }
+    },
+    {
+      "step": "level2_checkAgainstLedger_on_a_real_non_transfer_update",
+      "note": "points the check at the real ReceiptRecord update: it exists but contains no token transfer",
+      "updateId": "1220c6766693f0f1e7734958e2fc2537f59fea4819b624ee9a748a376c8d0c75b00e",
+      "result": {
+        "ok": false,
+        "reason": "no_transfer_visible",
+        "detail": "no transfer exercise and no holding views for readAs",
+        "checks": {
+          "payer": "not_visible",
+          "payee": "not_visible",
+          "amount": "not_visible",
+          "asset": "not_visible"
+        },
+        "recordTime": "2026-10-16T08:43:57.591919Z",
+        "synchronizerId": "synchronizer-1::12203bc137d423f7661646bdbf852322e882c7f12a62c161a963e34871f124bb4d7e"
+      }
+    }
+  ]
+}
