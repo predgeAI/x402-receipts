@@ -2,7 +2,7 @@
   "name": "x402-receipts",
   "version": "0.2.0",
   "description": "Signed, offline-verifiable receipts for x402 payments (chain-agnostic, ed25519 + RFC 8785 JCS).",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

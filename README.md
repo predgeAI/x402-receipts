@@ -1,6 +1,6 @@
 # x402-receipts
 
-Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. MIT licensed. Status: prototype, not audited. M1 done; M2a (Canton profile + ledger cross-check) done; M2b (Daml on-ledger receipt record) compiled, tested and run on a local Canton sandbox.
+Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. Apache-2.0 licensed. Status: prototype, not audited. M1 done; M2a (Canton profile + ledger cross-check) done; M2b (Daml on-ledger receipt record) compiled, tested and run on a local Canton sandbox.
 
 ## Why receipts matter
 
@@ -83,7 +83,7 @@ Layout: `src/` library (`src/canton.ts` for Canton), `docs/` profiles, `vectors/
 
 ## Support development
 
-This repo is open source (MIT) and maintained by a solo developer as part of Predge. If it is useful to you, you can support its development with a crypto donation. Donations cover RPC and hosting costs, test vectors and ongoing maintenance of the open-source tools. A donation does not buy a service, a token or any special treatment.
+This repo is open source (Apache-2.0) and maintained by a solo developer as part of Predge. If it is useful to you, you can support its development with a crypto donation. Donations cover RPC and hosting costs, test vectors and ongoing maintenance of the open-source tools. A donation does not buy a service, a token or any special treatment.
 
 - EVM (Base preferred; the same address works on Arbitrum and Arc): `0x9084f5000E07C7133D6dA5eE4f271AB6D1821144`
 - Solana: `9dxMRRtC7RKZH5rFZpUywjmnQ87H9qHhtW43u5LYmpV`
@@ -92,4 +92,4 @@ These are the same addresses Predge already uses to receive x402 payments. Send 
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Apache-2.0, see [LICENSE](LICENSE).
