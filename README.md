@@ -2,6 +2,26 @@
 
 Open-source prototype: signed, offline-verifiable receipts for [x402](https://x402.org) payments. Chain-agnostic TypeScript library, spec and test vectors. Apache-2.0 licensed. Status: prototype, not audited. M1 done; M2a (Canton profile + ledger cross-check) done; M2b (Daml on-ledger receipt record) compiled, tested and run on a local Canton sandbox.
 
+## Get a free key
+
+Free pilot key in a minute: https://predge.io/start (no card)
+
+First call: a signed delivery verdict for a paid agent call.
+
+```bash
+export PREDGE_KEY=pdg_pilot_...   # from predge.io/start
+curl -s https://api.predge.io/v1/verdicts \
+  -H 'content-type: application/json' \
+  -H "x-predge-key: $PREDGE_KEY" \
+  -d '{"job":{"endpoint":"https://api.example.com/v1/report","expected_content_type":"application/json","required_fields":["rows"]},
+       "delivery":{"status":200,"headers":{"content-type":"application/json"},"body":"{\"rows\":[1]}"},
+       "payment":{"amount_usd":0.25,"payer":"0xBuyer","payee":"0xMerchant"}}'
+```
+
+The response carries `verdict` (`delivered` / `not_delivered` / `inconclusive`), `reason_codes`, an ed25519 `attestation` and a `verify_url`. Docs: [predge.io/docs#verdicts](https://predge.io/docs#verdicts).
+
+No key? Pay per call over x402 instead: the same request without `x-predge-key` answers 402 with the price ($0.05), payable in USDC by any x402 client.
+
 ## Why receipts matter
 
 x402 settles a payment, but the payer is usually left with an HTTP 200 and the gateway's word that it happened. A signed receipt changes this: the recipient (or an auditor, accountant, or another agent) can verify who paid whom, how much, for what resource, and where it settled, using only the issuer's public key. No call to the gateway, no trust in the gateway's logs at audit time, and any edit to the stored file is detected. Receipts use CAIP identifiers so the same format covers EVM chains and Canton (see the [Canton profile](docs/canton-profile.md)).
